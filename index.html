@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>収支管理 ― 利益率を狙って決める</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Roboto+Mono:wght@500;700&display=swap');
+
+  :root{
+    --ink:#1a2238;
+    --ink-soft:#5b6478;
+    --line:#e3e6ee;
+    --bg:#f4f5f9;
+    --card:#ffffff;
+    --accent:#c2410c;       /* burnt orange */
+    --accent-soft:#fff1e8;
+    --navy:#1a2238;
+    --green:#15803d;
+    --green-soft:#e8f5ec;
+    --amber:#b45309;
+    --amber-soft:#fef6e7;
+    --shadow:0 1px 2px rgba(26,34,56,.04),0 8px 24px rgba(26,34,56,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+    padding-bottom:120px;
+  }
+  .mono{font-family:'Roboto Mono',monospace;font-feature-settings:"tnum"}
+
+  /* ---- header ---- */
+  header{
+    background:var(--navy);
+    color:#fff;
+    padding:22px 20px 26px;
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";position:absolute;right:-40px;top:-40px;
+    width:160px;height:160px;border-radius:50%;
+    background:radial-gradient(circle,rgba(194,65,12,.35),transparent 70%);
+  }
+  header h1{font-size:19px;font-weight:900;letter-spacing:.02em;position:relative}
+  header p{font-size:12.5px;color:#aab2c8;margin-top:4px;position:relative}
+
+  .wrap{max-width:560px;margin:0 auto;padding:0 16px}
+
+  /* ---- target chip ---- */
+  .target{
+    margin:-16px auto 0;position:relative;z-index:2;
+    background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+    padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border:1px solid var(--line);
+  }
+  .target .lbl{font-size:13px;font-weight:700;color:var(--ink-soft)}
+  .target .ctl{display:flex;align-items:center;gap:10px}
+  .stepbtn{
+    width:38px;height:38px;border-radius:11px;border:1px solid var(--line);
+    background:#fff;font-size:22px;font-weight:700;color:var(--accent);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:.12s;user-select:none;
+  }
+  .stepbtn:active{transform:scale(.92);background:var(--accent-soft)}
+  .target .val{font-family:'Roboto Mono';font-size:26px;font-weight:700;min-width:78px;text-align:center;color:var(--accent)}
+
+  /* ---- section ---- */
+  section{
+    background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+    border:1px solid var(--line);margin-top:14px;overflow:hidden;
+  }
+  .sec-head{
+    display:flex;align-items:center;gap:9px;padding:14px 16px 10px;
+  }
+  .sec-num{
+    width:24px;height:24px;border-radius:7px;background:var(--navy);color:#fff;
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .sec-head h2{font-size:14.5px;font-weight:700}
+  .sec-body{padding:4px 14px 16px}
+
+  /* mode tabs */
+  .tabs{display:flex;background:var(--bg);border-radius:11px;padding:4px;margin:0 14px 6px}
+  .tab{
+    flex:1;text-align:center;padding:9px;border-radius:8px;font-size:13px;font-weight:700;
+    color:var(--ink-soft);cursor:pointer;transition:.15s;
+  }
+  .tab.on{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+  /* row */
+  .row{display:grid;grid-template-columns:1fr;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .name{font-size:13.5px;font-weight:500}
+  .fields{display:grid;grid-template-columns:1fr 76px 96px;gap:7px;align-items:center}
+  .fields.cost{grid-template-columns:1fr 110px}
+  .ipt{
+    border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:15px;
+    font-family:'Roboto Mono';text-align:right;width:100%;background:#fff;color:var(--ink);
+    transition:.12s;
+  }
+  .ipt:focus{outline:none;border-color:var(--accent);background:var(--accent-soft)}
+  .ipt::placeholder{color:#c2c7d4;font-family:'Zen Kaku Gothic New'}
+  .unit{font-size:11px;color:var(--ink-soft);text-align:center}
+  .amt{font-family:'Roboto Mono';font-size:14px;text-align:right;font-weight:500;color:var(--ink-soft)}
+  .colhead{display:grid;grid-template-columns:1fr 76px 96px;gap:7px;font-size:10.5px;color:var(--ink-soft);padding:0 0 2px;font-weight:700}
+  .colhead.cost{grid-template-columns:1fr 110px}
+  .colhead span{text-align:center}
+  .colhead span:first-child{text-align:left}
+
+  .addbtn{
+    width:100%;margin-top:10px;padding:10px;border:1.5px dashed var(--line);border-radius:10px;
+    background:transparent;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+  .addbtn:active{background:var(--accent-soft)}
+  .delbtn{
+    background:none;border:none;color:#c2c7d4;font-size:18px;cursor:pointer;padding:0 2px;
+    grid-column:1/-1;justify-self:end;margin-top:-4px;
+  }
+
+  .subtotal{
+    display:flex;justify-content:space-between;align-items:center;
+    background:var(--bg);border-radius:11px;padding:11px 14px;margin-top:10px;
+  }
+  .subtotal .t{font-size:13px;font-weight:700;color:var(--ink-soft)}
+  .subtotal .v{font-family:'Roboto Mono';font-size:18px;font-weight:700}
+
+  /* ---- result ---- */
+  .result{
+    background:linear-gradient(160deg,#1a2238,#26304d);color:#fff;border:none;
+  }
+  .result .sec-head h2{color:#fff}
+  .result .sec-num{background:var(--accent)}
+  .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 14px 14px}
+  .rcard{background:rgba(255,255,255,.07);border-radius:13px;padding:14px;border:1px solid rgba(255,255,255,.09)}
+  .rcard .k{font-size:11.5px;color:#aab2c8;font-weight:700}
+  .rcard .n{font-family:'Roboto Mono';font-size:23px;font-weight:700;margin-top:3px;letter-spacing:-.01em}
+  .rcard.full{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between}
+  .rcard.full .n{font-size:21px}
+
+  .badge{
+    grid-column:1/-1;border-radius:13px;padding:13px 16px;text-align:center;
+    font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .badge.ok{background:var(--green-soft);color:var(--green)}
+  .badge.no{background:var(--amber-soft);color:var(--amber)}
+  .badge.idle{background:rgba(255,255,255,.08);color:#aab2c8;font-weight:500;font-size:13.5px}
+
+  /* ---- navi ---- */
+  .navi{background:var(--accent-soft);border:1px solid #f6d3bd}
+  .navi .sec-num{background:var(--accent)}
+  .navi-body{padding:4px 16px 16px;font-size:13px}
+  .navi-eq{
+    background:#fff;border-radius:10px;padding:10px 12px;margin:2px 0 12px;
+    font-size:12px;color:var(--ink-soft);text-align:center;line-height:1.5;
+  }
+  .navi-line{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px dashed #f0d6c4}
+  .navi-line:last-child{border-bottom:none}
+  .navi-line .k{font-weight:500}
+  .navi-line .v{font-family:'Roboto Mono';font-weight:700;font-size:16px}
+  .navi-line .v.big{font-size:19px;color:var(--accent)}
+  .hint{font-size:11.5px;color:var(--amber);margin-top:10px;line-height:1.5;background:#fff;border-radius:9px;padding:9px 11px}
+  .pos{color:var(--accent)} .neg{color:var(--green)}
+
+  footer{text-align:center;font-size:11px;color:#aeb4c4;padding:22px 16px 4px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>収支管理ツール</h1>
+    <p>参加費と経費を入れるだけ。狙った利益率に合わせます。</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 目標利益率 -->
+  <div class="target">
+    <span class="lbl">① 目標の利益率</span>
+    <div class="ctl">
+      <div class="stepbtn" id="tdown">−</div>
+      <div class="val mono" id="tval">30%</div>
+      <div class="stepbtn" id="tup">＋</div>
+    </div>
+  </div>
+
+  <!-- ② 売上 -->
+  <section>
+    <div class="sec-head"><div class="sec-num">2</div><h2>売上（参加費 × 人数）</h2></div>
+    <div class="tabs">
+      <div class="tab on" data-mode="budget" id="tabB">予算（事前）</div>
+      <div class="tab" data-mode="actual" id="tabA">決算（実績）</div>
+    </div>
+    <div class="sec-body">
+      <div class="colhead"><span>区分</span><span>単価</span><span>人数</span></div>
+      <div id="salesList"></div>
+      <button class="addbtn" id="addSales">＋ 参加区分を追加</button>
+      <div class="subtotal"><span class="t">売上合計</span><span class="v mono" id="salesTotal">0円</span></div>
+    </div>
+  </section>
+
+  <!-- ③ 経費 -->
+  <section>
+    <div class="sec-head"><div class="sec-num">3</div><h2>経費（かかる費用）</h2></div>
+    <div class="sec-body">
+      <div class="colhead cost"><span>項目</span><span>金額</span></div>
+      <div id="costList"></div>
+      <button class="addbtn" id="addCost">＋ 費用項目を追加</button>
+      <div class="subtotal"><span class="t">経費合計</span><span class="v mono" id="costTotal">0円</span></div>
+    </div>
+  </section>
+
+  <!-- ④ 結果 -->
+  <section class="result">
+    <div class="sec-head"><div class="sec-num">4</div><h2>結果（自動計算）</h2></div>
+    <div class="rgrid">
+      <div class="rcard"><div class="k">利益額</div><div class="n mono" id="profit">0円</div></div>
+      <div class="rcard"><div class="k">利益率</div><div class="n mono" id="margin">0.0%</div></div>
+      <div class="badge idle" id="judge">売上と経費を入力してください</div>
+    </div>
+  </section>
+
+  <!-- ⑤ 逆算ナビ -->
+  <section class="navi">
+    <div class="sec-head"><div class="sec-num">5</div><h2>利益率30%にするには？</h2></div>
+    <div class="navi-body">
+      <div class="navi-eq">必要売上 ＝ 経費 ÷ （1 − 目標利益率）</div>
+      <div class="navi-line"><span class="k">目標達成に必要な売上</span><span class="v big mono" id="needSales">0円</span></div>
+      <div class="navi-line"><span class="k">今の売上との差</span><span class="v mono" id="diffSales">0円</span></div>
+      <div class="navi-line"><span class="k">必要な平均単価（今の人数で）</span><span class="v mono" id="needUnit">―</span></div>
+      <div class="hint" id="hint">経費を入力すると、目標達成に必要な売上が表示されます。</div>
+    </div>
+  </section>
+
+</div>
+
+<footer>同じ画面で予算（事前）と決算（実績）を切り替えて記録できます。</footer>
+
+<script>
+  const yen = n => (n<0?"-":"") + Math.round(Math.abs(n)).toLocaleString("ja-JP") + "円";
+  const pct = n => (n*100).toFixed(1) + "%";
+
+  // 状態：予算と実績で別々の明細を持つ
+  const state = {
+    target: 0.30,
+    mode: "budget",
+    budget: {
+      sales:[{name:"一般参加",price:"",qty:""},{name:"早割参加",price:"",qty:""}],
+      costs:[{name:"会場費",amt:""},{name:"講師謝礼",amt:""},{name:"資料・印刷費",amt:""}]
+    },
+    actual: {
+      sales:[{name:"一般参加",price:"",qty:""},{name:"早割参加",price:"",qty:""}],
+      costs:[{name:"会場費",amt:""},{name:"講師謝礼",amt:""},{name:"資料・印刷費",amt:""}]
+    }
+  };
+
+  const num = v => { const n=parseFloat(v); return isNaN(n)?0:n; };
+  const cur = () => state[state.mode];
+
+  function renderSales(){
+    const list=document.getElementById("salesList");
+    list.innerHTML="";
+    cur().sales.forEach((row,i)=>{
+      const amt=num(row.price)*num(row.qty);
+      const el=document.createElement("div");
+      el.className="row";
+      el.innerHTML=`
+        <input class="ipt" style="text-align:left;font-family:'Zen Kaku Gothic New'" value="${row.name}" placeholder="区分名" data-t="sname" data-i="${i}">
+        <div class="fields">
+          <input class="ipt" inputmode="numeric" value="${row.price}" placeholder="単価" data-t="price" data-i="${i}">
+          <input class="ipt" inputmode="numeric" value="${row.qty}" placeholder="人数" data-t="qty" data-i="${i}">
+          <div class="amt">${amt?yen(amt):"―"}</div>
+          ${cur().sales.length>1?`<button class="delbtn" data-t="delS" data-i="${i}">×</button>`:""}
+        </div>`;
+      list.appendChild(el);
+    });
+  }
+
+  function renderCosts(){
+    const list=document.getElementById("costList");
+    list.innerHTML="";
+    cur().costs.forEach((row,i)=>{
+      const el=document.createElement("div");
+      el.className="row";
+      el.innerHTML=`
+        <div class="fields cost">
+          <input class="ipt" style="text-align:left;font-family:'Zen Kaku Gothic New'" value="${row.name}" placeholder="費用項目" data-t="cname" data-i="${i}">
+          <input class="ipt" inputmode="numeric" value="${row.amt}" placeholder="金額" data-t="amt" data-i="${i}">
+          ${cur().costs.length>1?`<button class="delbtn" data-t="delC" data-i="${i}">×</button>`:""}
+        </div>`;
+      list.appendChild(el);
+    });
+  }
+
+  function compute(){
+    const sales=cur().sales.reduce((s,r)=>s+num(r.price)*num(r.qty),0);
+    const qty=cur().sales.reduce((s,r)=>s+num(r.qty),0);
+    const costs=cur().costs.reduce((s,r)=>s+num(r.amt),0);
+    const profit=sales-costs;
+    const margin=sales>0?profit/sales:0;
+
+    document.getElementById("salesTotal").textContent=yen(sales);
+    document.getElementById("costTotal").textContent=yen(costs);
+    document.getElementById("profit").textContent=yen(profit);
+    document.getElementById("margin").textContent=sales>0?pct(margin):"―";
+
+    const judge=document.getElementById("judge");
+    if(sales<=0){
+      judge.className="badge idle"; judge.textContent="売上と経費を入力してください";
+    }else if(margin>=state.target){
+      judge.className="badge ok"; judge.textContent="◎ 目標達成（"+pct(margin)+"）";
+    }else{
+      judge.className="badge no"; judge.textContent="△ あと "+pct(state.target-margin)+" 足りません";
+    }
+
+    // 逆算
+    const needSales = state.target<1 ? costs/(1-state.target) : 0;
+    const diff = needSales - sales;
+    document.getElementById("needSales").textContent = costs>0?yen(needSales):"―";
+    const ds=document.getElementById("diffSales");
+    ds.textContent = costs>0?(diff>=0?"+":"")+yen(diff):"―";
+    ds.className = "v mono "+(diff>0?"pos":"neg");
+    document.getElementById("needUnit").textContent = (costs>0&&qty>0)?yen(needSales/qty):"―";
+
+    const hint=document.getElementById("hint");
+    if(costs<=0){
+      hint.textContent="経費を入力すると、目標達成に必要な売上が表示されます。";
+    }else if(diff>0){
+      hint.innerHTML="あと <b>"+yen(diff)+"</b> 売上が必要です。参加費か人数を増やして調整してください。";
+    }else{
+      hint.innerHTML="現在の見込みで目標利益率を達成しています。";
+    }
+  }
+
+  function renderAll(){ renderSales(); renderCosts(); compute(); }
+
+  // 入力イベント（委譲）
+  document.body.addEventListener("input",e=>{
+    const t=e.target.dataset.t, i=e.target.dataset.i;
+    if(!t)return;
+    const v=e.target.value;
+    if(t==="sname")cur().sales[i].name=v;
+    else if(t==="price")cur().sales[i].price=v;
+    else if(t==="qty")cur().sales[i].qty=v;
+    else if(t==="cname")cur().costs[i].name=v;
+    else if(t==="amt")cur().costs[i].amt=v;
+    compute();
+  });
+  document.body.addEventListener("click",e=>{
+    const t=e.target.dataset.t, i=e.target.dataset.i;
+    if(t==="delS"){cur().sales.splice(i,1);renderAll();}
+    else if(t==="delC"){cur().costs.splice(i,1);renderAll();}
+  });
+
+  document.getElementById("addSales").onclick=()=>{cur().sales.push({name:"",price:"",qty:""});renderSales();compute();};
+  document.getElementById("addCost").onclick=()=>{cur().costs.push({name:"",amt:""});renderCosts();compute();};
+
+  // 目標利益率の増減
+  function setTarget(v){
+    state.target=Math.max(0,Math.min(0.95,Math.round(v*100)/100));
+    document.getElementById("tval").textContent=Math.round(state.target*100)+"%";
+    compute();
+  }
+  document.getElementById("tup").onclick=()=>setTarget(state.target+0.05);
+  document.getElementById("tdown").onclick=()=>setTarget(state.target-0.05);
+
+  // 予算 / 決算 切り替え
+  function setMode(m){
+    state.mode=m;
+    document.getElementById("tabB").classList.toggle("on",m==="budget");
+    document.getElementById("tabA").classList.toggle("on",m==="actual");
+    renderAll();
+  }
+  document.getElementById("tabB").onclick=()=>setMode("budget");
+  document.getElementById("tabA").onclick=()=>setMode("actual");
+
+  renderAll();
+</script>
+</body>
+</html>
